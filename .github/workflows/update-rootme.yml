@@ -1,0 +1,46 @@
+name: Update Root-Me Badge
+
+on:
+  schedule:
+    - cron: "0 */12 * * *"   # every 12 hours
+  workflow_dispatch:
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: sudo apt-get install -y html-xml-utils
+
+      - name: Fetch Root-Me profile HTML
+        run: curl -s https://www.root-me.org/Rizou > profile.html
+
+      - name: Extract solved challenges count
+        id: extract
+        run: |
+          # Look for the "Challenges | Validated" entry (Root-Me HTML contains this)
+          COUNT=$(grep -oP 'Validated.+?\K\d+' profile.html | head -1)
+          echo "count=$COUNT" >> $GITHUB_OUTPUT
+
+      - name: Generate new rootme.json
+        run: |
+          echo "{
+            \"schemaVersion\": 1,
+            \"label\": \"Root-Me\",
+            \"message\": \"${{ steps.extract.outputs.count }} challenges\",
+            \"color\": \"brightgreen\"
+          }" > rootme.json
+
+      - name: Commit if changed
+        run: |
+          if ! git diff --quiet; then
+            git config --global user.name "github-actions"
+            git config --global user.email "github-actions@github.com"
+            git add rootme.json
+            git commit -m "Update Root-Me badge: ${{ steps.extract.outputs.count }} challenges"
+            git push
+          fi
