@@ -1,46 +1,34 @@
-name: Update Root-Me Badge
+name: Update Root-Me Card
 
 on:
   schedule:
-    - cron: "0 */12 * * *"   # every 12 hours
+    - cron: "0 */6 * * *"   # Update every 6 hours
   workflow_dispatch:
 
 jobs:
-  update:
+  update-card:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
 
       - name: Install dependencies
-        run: sudo apt-get install -y html-xml-utils
+        run: pip install requests
 
-      - name: Fetch Root-Me profile HTML
-        run: curl -s https://www.root-me.org/Rizou > profile.html
+      - name: Generate Root-Me card
+        run: python scripts/generate_rootme_card.py
 
-      - name: Extract solved challenges count
-        id: extract
-        run: |
-          # Look for the "Challenges | Validated" entry (Root-Me HTML contains this)
-          COUNT=$(grep -oP 'Validated.+?\K\d+' profile.html | head -1)
-          echo "count=$COUNT" >> $GITHUB_OUTPUT
-
-      - name: Generate new rootme.json
-        run: |
-          echo "{
-            \"schemaVersion\": 1,
-            \"label\": \"Root-Me\",
-            \"message\": \"${{ steps.extract.outputs.count }} challenges\",
-            \"color\": \"brightgreen\"
-          }" > rootme.json
-
-      - name: Commit if changed
+      - name: Commit and push if changed
         run: |
           if ! git diff --quiet; then
-            git config --global user.name "github-actions"
             git config --global user.email "github-actions@github.com"
-            git add rootme.json
-            git commit -m "Update Root-Me badge: ${{ steps.extract.outputs.count }} challenges"
+            git config --global user.name "github-actions"
+            git add rootme.svg
+            git commit -m "Update Root-Me card"
             git push
           fi
