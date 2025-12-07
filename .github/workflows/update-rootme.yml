@@ -21,11 +21,7 @@ jobs:
         run: pip install requests
 
       - name: Generate Root-Me card
-<<<<<<< HEAD
-        run: python rootme.py
-=======
-        run: python scripts/generate_rootme_card.py
->>>>>>> f86277a (feat: .svg for root me badges)
+        run: python rootme_generator.py
 
       - name: Commit and push if changed
         run: |
